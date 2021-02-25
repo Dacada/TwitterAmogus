@@ -11,7 +11,7 @@ def wait_for_rate_limit(logger, timestamp):
     goal = datetime.datetime.fromtimestamp(timestamp)
     now = datetime.datetime.now()
     logger.warning("Hit rate limit.")
-    while goal > now:
+    while goal >= now:
         t = (goal-now).seconds
         logger.info("Sleeping for: " + str(t))
         time.sleep(t)
