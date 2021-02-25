@@ -31,6 +31,7 @@ def main(app_key, app_secret, oauth_token, oauth_token_secret):
                 try:
                     logger.info("Retweeting tweet " + result['id_str'])
                     twitter.retweet(id=result['id'])
+                    sleep(60)
                 except twython.exceptions.TwythonError as e:
                     if 'You have already retweeted this Tweet' in e.msg:
                         logger.warning("Tweet had already been retweeted.")
