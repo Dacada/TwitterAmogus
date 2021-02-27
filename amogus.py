@@ -4,6 +4,7 @@ import datetime
 import time
 import logging
 import os
+import subprocess
 import twython
 
 
@@ -20,12 +21,21 @@ def wait_for_rate_limit(logger, timestamp):
         now = datetime.datetime.now()
 
 
+def is_internet_up():
+    return subprocess.call(['ping', '-c', '1', '8.8.8.8']) == 0
+
+
 def main(app_key, app_secret, oauth_token, oauth_token_secret):
     logger = logging.getLogger('amogus')
     logger.setLevel(logging.INFO)
     handler = logging.StreamHandler()
     handler.setLevel(logging.INFO)
     logger.addHandler(handler)
+
+    logger.info("Checking for internet connection...")
+    while not is_internet_up():
+        logger.error("Internet is not up!! Sleeping 5 minutes before retry...")
+        time.sleep(5*60)
 
     logger.info("Bot starting.")
     twitter = twython.Twython(app_key, app_secret,
