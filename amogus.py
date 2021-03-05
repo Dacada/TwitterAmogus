@@ -63,6 +63,13 @@ def main(app_key, app_secret, oauth_token, oauth_token_secret):
                             continue
                         else:
                             raise
+                    except twython.exceptions.TwythonAuthError as e:
+                        if 'You have been blocked' in e.msg:
+                            logger.warning("Tweet cannot be retweeted "
+                                           "because user has us blocked.")
+                            continue
+                        else:
+                            raise
                     time.sleep(60)
         except twython.exceptions.TwythonRateLimitError as e:
             wait_for_rate_limit(logger, int(e.retry_after))
