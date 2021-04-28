@@ -6,6 +6,10 @@ import logging
 import os
 import subprocess
 import twython
+import sd_notify
+
+
+MAX_INTERNET_UP_ATTEMPTS = 5
 
 
 def wait_for_rate_limit(logger, timestamp):
@@ -26,6 +30,11 @@ def is_internet_up():
 
 
 def main(app_key, app_secret, oauth_token, oauth_token_secret):
+    notify = sd_notify.Notifier()
+    if not notify.enabled():
+        raise Exception("Watchdog not enabled! "
+                        "Is this running through systemd?")
+
     logger = logging.getLogger('amogus')
     logger.setLevel(logging.INFO)
     handler = logging.StreamHandler()
@@ -33,13 +42,21 @@ def main(app_key, app_secret, oauth_token, oauth_token_secret):
     logger.addHandler(handler)
 
     logger.info("Checking for internet connection...")
+    attempts = 0
     while not is_internet_up():
+        attempts += 1
+        if attempts >= MAX_INTERNET_UP_ATTEMPTS:
+            raise Exception("Could not get internet access in {} attempts."
+                            .format(MAX_INTERNET_UP_ATTEMPTS))
+
         logger.error("Internet is not up!! Sleeping 5 minutes before retry...")
+        notify._send("EXTEND_TIMEOUT_USEC={}\n".format(5*60*1000000))
         time.sleep(5*60)
 
     logger.info("Bot starting.")
     twitter = twython.Twython(app_key, app_secret,
                               oauth_token, oauth_token_secret)
+    notify.ready()
 
     while True:
         try:
@@ -70,6 +87,7 @@ def main(app_key, app_secret, oauth_token, oauth_token_secret):
                             continue
                         else:
                             raise
+                    notify.notify()
                     time.sleep(60)
         except twython.exceptions.TwythonRateLimitError as e:
             wait_for_rate_limit(logger, int(e.retry_after))
